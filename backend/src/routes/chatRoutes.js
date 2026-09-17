@@ -1,0 +1,10 @@
+import { Router } from "express";
+import { protect } from "../middleware/authMiddleware.js";
+import { listConversations, getConversation, deleteConversation, streamChat } from "../controllers/chatController.js";
+const router = Router();
+router.use(protect);
+router.get("/conversations", listConversations);
+router.get("/conversations/:id", getConversation);
+router.delete("/conversations/:id", deleteConversation);
+router.post("/stream", streamChat);
+export default router;
