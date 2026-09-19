@@ -1,6 +1,6 @@
 # Devixo
 
-An AI developer assistant that combines chat, code review, code generation, and bug fixing in one workspace — built as a full-stack portfolio project.
+A full stack AI development solution that combines chat, code review, code generation, and bug fixing in one seamless workspace.
 
 ## Features
 
@@ -52,6 +52,3 @@ Both frontend and backend deploy to Vercel from the same repository, as two sepa
 
 `backend/vercel.json` configures the Express app to run as a Vercel serverless function with a 60-second timeout, since AI responses can take a while to fully stream.
 
-## Design Notes
-
-The app uses a monochrome palette with no accent colors. Dark mode is implemented as global CSS overrides rather than per-component dark classes, since the strict grayscale palette maps cleanly onto that approach, and code blocks stay light in both themes to match how most code editors render regardless of the app's own theme. Chat, Code Review, Code Generator, and Bug Fixer all share the same streaming and markdown rendering pipeline, so improvements to one carry over to the others automatically.
