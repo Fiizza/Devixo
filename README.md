@@ -1,105 +1,57 @@
 # Devixo
 
-A full stack AI development solution that combines chat, code review, code generation, and bug fixing in one seamless workspace.
+An AI developer assistant that combines chat, code review, code generation, and bug fixing in one workspace — built as a full-stack portfolio project.
 
 ## Features
 
-- **AI Chat** — streaming conversations with markdown rendering, syntax-highlighted code blocks, file attachments, saved history with search and date grouping.
-- **Code Review** — paste code and get back structured feedback: bugs, security issues, performance suggestions, improvements, and best practices, each with a severity level.
-- **Code Generator** — seven generator types (React component, FastAPI endpoint, SQL query, Dockerfile, README, regex, code explanation), each with its own tuned prompt.
-- **Bug Fixer** — paste an error message, stack trace, and/or code (any one is enough) and get back the root cause, a fixed version of the code, and a plain-language explanation.
-- **Auth** — signup/login with JWT, bcrypt password hashing, and email verification (with resend support).
-- **Dark mode** — toggle in the sidebar, persisted across sessions.
-- **Responsive** — off-canvas sidebar on mobile, fixed-height app shell on desktop.
+Devixo brings four tools together in one workspace. AI Chat supports streaming conversations with markdown rendering, syntax-highlighted code blocks, file attachments, and saved history with search and date grouping. Code Review takes pasted code and returns structured feedback covering bugs, security issues, performance suggestions, and best practices, each with a severity level. Code Generator offers seven generator types — React components, FastAPI endpoints, SQL queries, Dockerfiles, READMEs, regex patterns, and code explanations — each with its own tuned prompt. Bug Fixer takes an error message, stack trace, and/or code (any one is enough) and returns the root cause, a fixed version of the code, and a plain-language explanation.
+
+Authentication uses JWT with bcrypt password hashing and email verification with resend support. The app includes a dark mode toggle that persists across sessions, and a responsive layout with an off-canvas sidebar on mobile.
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | React (Vite), Tailwind CSS, React Router, Framer Motion |
-| Backend | Node.js, Express, PostgreSQL (raw SQL via `pg`) |
-| AI | [Groq](https://groq.com) (`openai/gpt-oss-120b`) |
-| Auth | JWT, bcrypt, email verification via Nodemailer |
-| Database | PostgreSQL ([Neon](https://neon.tech) recommended) |
-| Hosting | Vercel (frontend + backend) |
+The frontend is built with React (Vite), Tailwind CSS, React Router, and Framer Motion. The backend runs on Node.js and Express, using PostgreSQL for storage via raw SQL through the `pg` library. AI responses come from Groq, running the `openai/gpt-oss-120b` model. Email verification is sent through Nodemailer, and both frontend and backend deploy to Vercel.
 
 ## Project Structure
 
-```
-devpilot-ai7/
-├── backend/
-│   ├── src/
-│   │   ├── controllers/    # Request handlers (auth, chat, generate, review, bugfix)
-│   │   ├── models/         # Database queries
-│   │   ├── routes/         # Express route definitions
-│   │   ├── services/       # AI prompt logic per feature
-│   │   ├── config/         # Mailer, DB connection
-│   │   └── server.js       # App entry point
-│   ├── vercel.json
-│   └── package.json
-└── frontend/
-    ├── src/
-    │   ├── pages/           # One component per route
-    │   ├── components/      # Shared UI (Sidebar, ChatInput, ChatMessage, Logo)
-    │   ├── context/          # Auth and theme state
-    │   └── api/              # Axios instance + SSE stream helpers
-    └── package.json
-```
+Backend code lives under `backend/src`, organized into controllers for request handling, models for database queries, routes for Express endpoints, services for AI prompt logic per feature, and config for the mailer and database connection, with `server.js` as the entry point. Frontend code lives under `frontend/src`, with one component per route in `pages`, shared UI like the sidebar and chat components in `components`, auth and theme state in `context`, and the API client and streaming helpers in `api`.
 
 ## Local Setup
 
-### 1. Database
-
-Create a PostgreSQL database (Neon's free tier works well), then run the schema once:
+Create a PostgreSQL database — Neon's free tier works well — then run the schema once:
 
 ```bash
 psql <your-connection-string> -f backend/src/db/schema.sql
 ```
 
-### 2. Backend
+Set up the backend:
 
 ```bash
 cd backend
-cp .env.example .env   # fill in the values below
+cp .env.example .env
 npm install
-npm run dev             # http://localhost:5000
+npm run dev
 ```
 
-Required environment variables:
+The backend needs a `DATABASE_URL` connection string, a `JWT_SECRET` (any long random string, generated with something like `openssl rand -hex 32`), `JWT_EXPIRES_IN` (e.g. `7d`), a Gmail address and App Password as `EMAIL_USER`/`EMAIL_PASS` for sending verification emails, a free `GROQ_API_KEY` from console.groq.com/keys, and `CLIENT_URL` set to the frontend's origin for CORS.
 
-| Variable | Notes |
-|---|---|
-| `DATABASE_URL` | Your PostgreSQL connection string |
-| `JWT_SECRET` | Any long random string — generate one with `openssl rand -hex 32` |
-| `JWT_EXPIRES_IN` | e.g. `7d` |
-| `EMAIL_USER` | A Gmail address used to send verification emails |
-| `EMAIL_PASS` | A [Gmail App Password](https://myaccount.google.com/apppasswords) — not your regular password |
-| `GROQ_API_KEY` | Free key from [console.groq.com/keys](https://console.groq.com/keys) |
-| `CLIENT_URL` | Frontend origin, for CORS — `http://localhost:5173` locally |
-
-### 3. Frontend
+Set up the frontend:
 
 ```bash
 cd frontend
 cp .env.example .env
 npm install
-npm run dev              # http://localhost:5173
+npm run dev
 ```
 
-Required environment variable:
-
-| Variable | Notes |
-|---|---|
-| `VITE_API_URL` | Backend base URL — `http://localhost:5000/api` locally |
+The frontend needs `VITE_API_URL` pointing to the backend's base URL, with `/api` at the end.
 
 ## Deployment
 
-Both frontend and backend deploy to Vercel from the same repository, as two separate projects with different **Root Directory** settings (`backend` and `frontend`).
-
-1. Push this repo to GitHub.
-2. Import it into Vercel twice — once with Root Directory `backend`, once with `frontend`.
-3. Add the environment variables from the tables above to each project (using each project's public deployment URL for `CLIENT_URL` and `VITE_API_URL` once both are live).
-4. Redeploy the backend after setting `CLIENT_URL`, since environment variable changes require a fresh deploy to take effect.
+Both frontend and backend deploy to Vercel from the same repository, as two separate projects with different Root Directory settings — `backend` and `frontend`. Push the repo to GitHub, import it into Vercel twice with those root directories, and add the environment variables described above to each project, using each project's live deployment URL for `CLIENT_URL` and `VITE_API_URL` once both are up. The backend needs a redeploy after `CLIENT_URL` is set, since environment variable changes only take effect on the next deploy.
 
 `backend/vercel.json` configures the Express app to run as a Vercel serverless function with a 60-second timeout, since AI responses can take a while to fully stream.
 
+## Design Notes
+
+The app uses a monochrome palette with no accent colors. Dark mode is implemented as global CSS overrides rather than per-component dark classes, since the strict grayscale palette maps cleanly onto that approach, and code blocks stay light in both themes to match how most code editors render regardless of the app's own theme. Chat, Code Review, Code Generator, and Bug Fixer all share the same streaming and markdown rendering pipeline, so improvements to one carry over to the others automatically.
