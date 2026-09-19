@@ -1,27 +1,84 @@
-# Devixo — Day 4: Code Generator
+# Devixo
 
-## Stack
-Frontend: React (Vite) + Tailwind CSS + React Router + Framer Motion
-Backend: Node.js + Express + PostgreSQL (raw SQL via `pg`)
-AI: Groq (`openai/gpt-oss-120b`) — free tier, no credit card
-Auth: JWT + bcrypt + email verification (Nodemailer/Gmail)
+A full stack AI development solution that combines chat, code review, code generation, and bug fixing in one seamless workspace.
 
-## Setup
+## Features
+
+- **AI Chat** — streaming conversations with markdown rendering, syntax-highlighted code blocks, file attachments, saved history with search and date grouping.
+- **Code Review** — paste code and get back structured feedback: bugs, security issues, performance suggestions, improvements, and best practices, each with a severity level.
+- **Code Generator** — seven generator types (React component, FastAPI endpoint, SQL query, Dockerfile, README, regex, code explanation), each with its own tuned prompt.
+- **Bug Fixer** — paste an error message, stack trace, and/or code (any one is enough) and get back the root cause, a fixed version of the code, and a plain-language explanation.
+- **Auth** — signup/login with JWT, bcrypt password hashing, and email verification (with resend support).
+- **Dark mode** — toggle in the sidebar, persisted across sessions.
+- **Responsive** — off-canvas sidebar on mobile, fixed-height app shell on desktop.
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React (Vite), Tailwind CSS, React Router, Framer Motion |
+| Backend | Node.js, Express, PostgreSQL (raw SQL via `pg`) |
+| AI | [Groq](https://groq.com) (`openai/gpt-oss-120b`) |
+| Auth | JWT, bcrypt, email verification via Nodemailer |
+| Database | PostgreSQL ([Neon](https://neon.tech) recommended) |
+| Hosting | Vercel (frontend + backend) |
+
+## Project Structure
+
+```
+devpilot-ai7/
+├── backend/
+│   ├── src/
+│   │   ├── controllers/    # Request handlers (auth, chat, generate, review, bugfix)
+│   │   ├── models/         # Database queries
+│   │   ├── routes/         # Express route definitions
+│   │   ├── services/       # AI prompt logic per feature
+│   │   ├── config/         # Mailer, DB connection
+│   │   └── server.js       # App entry point
+│   ├── vercel.json
+│   └── package.json
+└── frontend/
+    ├── src/
+    │   ├── pages/           # One component per route
+    │   ├── components/      # Shared UI (Sidebar, ChatInput, ChatMessage, Logo)
+    │   ├── context/          # Auth and theme state
+    │   └── api/              # Axios instance + SSE stream helpers
+    └── package.json
+```
+
+## Local Setup
 
 ### 1. Database
-Create a Postgres DB (Neon recommended), then run `backend/src/db/schema.sql` once.
+
+Create a PostgreSQL database (Neon's free tier works well), then run the schema once:
+
+```bash
+psql <your-connection-string> -f backend/src/db/schema.sql
+```
 
 ### 2. Backend
+
 ```bash
 cd backend
-cp .env.example .env   # fill in DATABASE_URL, JWT_SECRET, EMAIL_USER/PASS, GROQ_API_KEY
+cp .env.example .env   # fill in the values below
 npm install
 npm run dev             # http://localhost:5000
 ```
-- `GROQ_API_KEY` — free key from https://console.groq.com/keys
-- `EMAIL_USER`/`EMAIL_PASS` — a Gmail address + App Password (https://myaccount.google.com/apppasswords), used to send verification emails to any signup address, not just your own
+
+Required environment variables:
+
+| Variable | Notes |
+|---|---|
+| `DATABASE_URL` | Your PostgreSQL connection string |
+| `JWT_SECRET` | Any long random string — generate one with `openssl rand -hex 32` |
+| `JWT_EXPIRES_IN` | e.g. `7d` |
+| `EMAIL_USER` | A Gmail address used to send verification emails |
+| `EMAIL_PASS` | A [Gmail App Password](https://myaccount.google.com/apppasswords) — not your regular password |
+| `GROQ_API_KEY` | Free key from [console.groq.com/keys](https://console.groq.com/keys) |
+| `CLIENT_URL` | Frontend origin, for CORS — `http://localhost:5173` locally |
 
 ### 3. Frontend
+
 ```bash
 cd frontend
 cp .env.example .env
@@ -29,81 +86,20 @@ npm install
 npm run dev              # http://localhost:5173
 ```
 
-## What's built so far
+Required environment variable:
 
-**Day 1 — Auth & Dashboard shell**: signup/login, JWT, bcrypt, protected routes, PostgreSQL.
+| Variable | Notes |
+|---|---|
+| `VITE_API_URL` | Backend base URL — `http://localhost:5000/api` locally |
 
-**Day 2 — AI Chat**: `/chat`, SSE streaming, conversations saved to DB, markdown + syntax-highlighted code blocks, search + date-grouped history (merged into the main sidebar), delete with confirmation.
+## Deployment
 
-**Day 3 — Code Review**: `/code-review`, paste code + pick a language, Groq returns structured JSON (bugs, security issues, performance suggestions, improvements, best practices) rendered as categorized cards with severity badges.
+Both frontend and backend deploy to Vercel from the same repository, as two separate projects with different **Root Directory** settings (`backend` and `frontend`).
 
-**Day 4 — Code Generator**: `/generate` (this update, see below).
+1. Push this repo to GitHub.
+2. Import it into Vercel twice — once with Root Directory `backend`, once with `frontend`.
+3. Add the environment variables from the tables above to each project (using each project's public deployment URL for `CLIENT_URL` and `VITE_API_URL` once both are live).
+4. Redeploy the backend after setting `CLIENT_URL`, since environment variable changes require a fresh deploy to take effect.
 
-Design: light monochrome theme (black/white/gray, no blue), Inter font, "Devixo" branding, animated 3D "D" logo, fixed-height app shell (Dashboard was removed — Chat is now the landing page after login).
+`backend/vercel.json` configures the Express app to run as a Vercel serverless function with a 60-second timeout, since AI responses can take a while to fully stream.
 
----
-
-# Day 4 — Code Generator
-
-## What's new
-- **`/generate`** page: pick a generator type from seven pills, describe what you need, click Generate
-- **One backend endpoint** (`POST /api/generate`), a different system prompt per type — exactly per the original plan
-- **Streams** the result via SSE (same pattern as Chat), rendered through the same `ChatMessage` component so you get syntax-highlighted code blocks, a Copy button, and the "no jank while streaming" fix from Day 2 for free
-
-## The 7 generator types
-| Type | Key | Output |
-|---|---|---|
-| React Component | `react-component` | Functional component, hooks, Tailwind classes |
-| FastAPI Endpoint | `fastapi` | Route + Pydantic models |
-| SQL Query | `sql` | A single query |
-| Dockerfile | `dockerfile` | Production-ready, minimal |
-| README | `readme` | Full README.md in a markdown block |
-| Regex | `regex` | Pattern + explanation with examples |
-| Explain Code | `explain` | Paste code in, get a plain-language walkthrough back |
-
-## How it works
-- `backend/src/services/generateService.js` — a `GENERATOR_TYPES` map of `{ label, system }`; `streamGenerate(type, prompt, onDelta)` picks the right system prompt and streams from Groq
-- `POST /api/generate` — body `{ type, prompt }`, protected, streams SSE `data:` chunks + a final `event: done`
-- `GET /api/generate/types` — returns the list of types (not currently used by the frontend, which hardcodes the same list for instant render, but available if you want to drive the UI from the backend instead)
-- No database persistence — stateless like Code Review, not saved like Chat conversations
-- Frontend: `frontend/src/api/generateStream.js` mirrors `chatStream.js`'s fetch+ReadableStream SSE parsing
-
-## Next (Day 5)
-Bug Fixer — paste an error message, stack trace, and code; get back root cause, fixed code, and an explanation.
-
----
-
-# Day 5 — Bug Fixer
-
-## What's new
-- **`/bugfix`** page: three inputs — error message, stack trace (optional), code — plus a language picker
-- Groq returns structured JSON (like Code Review): **Root Cause**, **Fixed Code** (syntax-highlighted, with Copy), **Explanation**
-- Any single input is enough to submit — you don't need all three, matching real debugging (sometimes you only have a stack trace, sometimes only code)
-- "Try a sample" loads a classic `undefined` bug so you can see it work immediately
-
-## How it works
-- `POST /api/bugfix` — body `{ errorMessage, stackTrace, code, language }`, protected, non-streaming (same reasoning as Code Review: a small structured JSON response is easier to render into clean sections than a stream)
-- `backend/src/services/bugfixService.js` sends whatever inputs were provided to Groq with a strict JSON schema prompt, defensively parses the response
-- Stateless — no DB persistence, consistent with Code Review and Code Generator
-- Input capped at 20,000 characters combined across all three fields
-
-## Next (Day 6)
-Polish — dark mode, animations, loading skeletons, toast notifications, responsive design, typography pass.
-
----
-
-# Day 6 — Polish
-
-## What's new
-- **Dark mode toggle** — button at the bottom of the sidebar, persists to localStorage. Implemented as a `.dark` class on `<html>` with global CSS overrides in `index.css` rather than hand-editing `dark:` variants across every component (the app's strict grayscale palette maps cleanly onto this). Code blocks intentionally stay light in both modes, same as most editors.
-- **Toast notifications** — new `ToastContext`/`useToast()`, top-right stack, auto-dismiss. Wired into: profile save, conversation delete, and AI-call errors across Code Review, Code Generator, and Bug Fixer (in addition to their existing inline error text).
-- **Loading skeletons** — sidebar conversation list while first fetching, and pulsing message-bubble placeholders when opening an existing chat (replaces the old plain "Loading..." text).
-- **Animations** — new messages, chat, and result panels in Code Review/Code Generator/Bug Fixer fade-in on arrival (`animate-fade-in-up`, already defined, now actually used everywhere it fits).
-- **Responsive sidebar** — this was the real gap before: the sidebar was `fixed width, always visible`, which breaks on mobile. It's now a proper off-canvas drawer below the `lg` breakpoint: hamburger button to open, backdrop + swipe-away-by-tap to close, auto-closes on navigation. This one component change makes every page in the app responsive, since they all share `<Sidebar />`.
-
-## Notes
-- Dark mode intentionally stays a **toggle**, not a replacement for the light theme — light remains the default given how much back-and-forth went into landing on it.
-- The dark-mode CSS-override approach is a deliberate trade-off: much less code than per-component `dark:` classes, but it means new components should stick to the existing gray-scale utility classes (`bg-white`, `text-gray-500`, etc.) to pick up dark mode automatically — introducing new one-off colors would need a matching override added to `index.css`.
-
-## Next (Day 7)
-Deploy — Vercel (frontend), Render/Railway/Fly.io (backend), Neon (already in use). Plus README, screenshots, demo video, portfolio page.
